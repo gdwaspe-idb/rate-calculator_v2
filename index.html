@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>iDbase Software — Rate Calculators</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; background: #f2f2f2; color: #1a1a1a; font-size: 15px; min-height: 100vh; }
+
+  /* ── NAV ── */
+  nav { background: #fff; border-bottom: 1px solid #e0e0e0; padding: 0 36px; display: flex; align-items: center; justify-content: space-between; height: 72px; position: sticky; top: 0; z-index: 100; }
+  .logo-wrap { display: flex; align-items: center; gap: 14px; text-decoration: none; }
+  .logo-img { height: 44px; width: auto; display: block; }
+  .logo-tagline { font-size: 11.5px; color: #999; border-left: 1px solid #e0e0e0; padding-left: 14px; margin-left: 4px; line-height: 1.6; }
+  .back-btn { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #666; font-weight: 500; cursor: pointer; border: none; background: none; padding: 6px 0; transition: color .15s; }
+  .back-btn:hover { color: #C8102E; }
+  .back-btn svg { width: 16px; height: 16px; }
+
+  /* ── HERO ── */
+  .hero { background: #3D3D3D; padding: 36px 36px 30px; position: relative; overflow: hidden; }
+  .hero::before { content: ""; position: absolute; left: -80px; top: -100px; width: 380px; height: 380px; background: #C8102E; border-radius: 55% 45% 60% 40% / 48% 58% 42% 52%; opacity: 0.95; }
+  .hero-inner { position: relative; z-index: 1; }
+  .hero h1 { font-size: 22px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
+  .hero p  { font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 5px; }
+  .hero-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(200,16,46,0.18); border: 1px solid rgba(200,16,46,0.4); border-radius: 20px; padding: 4px 12px; font-size: 11.5px; color: #ff8090; font-weight: 600; margin-bottom: 12px; }
+
+  /* ── LANDING ── */
+  .landing-hero { background: #3D3D3D; padding: 56px 36px 48px; position: relative; overflow: hidden; text-align: center; }
+  .landing-hero::before { content: ""; position: absolute; left: -80px; top: -100px; width: 420px; height: 420px; background: #C8102E; border-radius: 55% 45% 60% 40% / 48% 58% 42% 52%; opacity: 0.9; }
+  .landing-hero::after { content: ""; position: absolute; right: -60px; bottom: -80px; width: 300px; height: 300px; background: #C8102E; border-radius: 40% 60% 55% 45% / 52% 48% 60% 40%; opacity: 0.15; }
+  .landing-hero-inner { position: relative; z-index: 1; }
+  .landing-hero h1 { font-size: 28px; font-weight: 800; color: #fff; letter-spacing: -0.5px; margin-bottom: 8px; }
+  .landing-hero p { font-size: 14px; color: rgba(255,255,255,0.6); }
+
+  .selector-wrap { max-width: 780px; margin: -28px auto 0; padding: 0 20px 60px; }
+  .selector-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media(max-width:580px) { .selector-grid { grid-template-columns: 1fr; } }
+
+  .calc-card {
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 14px;
+    padding: 28px 24px; cursor: pointer;
+    transition: border-color .2s, box-shadow .2s, transform .15s;
+    text-align: left;
+  }
+  .calc-card:hover { border-color: #C8102E; box-shadow: 0 6px 24px rgba(200,16,46,.12); transform: translateY(-2px); }
+  .calc-card-icon { width: 44px; height: 44px; background: #fff0f2; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+  .calc-card-icon svg { width: 22px; height: 22px; fill: #C8102E; }
+  .calc-card h2 { font-size: 16px; font-weight: 700; color: #1a1a1a; margin-bottom: 6px; }
+  .calc-card p { font-size: 13px; color: #888; line-height: 1.55; margin-bottom: 18px; }
+  .calc-card-cta { font-size: 13px; font-weight: 600; color: #C8102E; display: flex; align-items: center; gap: 5px; }
+  .calc-card-cta svg { width: 14px; height: 14px; fill: #C8102E; transition: transform .15s; }
+  .calc-card:hover .calc-card-cta svg { transform: translateX(3px); }
+
+  /* ── CALCULATOR SCREENS ── */
+  .container { max-width: 860px; margin: 0 auto; padding: 28px 20px 60px; }
+
+  .card { background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 22px 24px; margin-bottom: 16px; }
+  .section-title { font-size: 11px; font-weight: 700; color: #C8102E; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 14px; }
+
+  .row  { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  @media(max-width:580px) { .row,.row3 { grid-template-columns: 1fr; } }
+
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  label { font-size: 12px; color: #666; font-weight: 500; }
+  .field-hint { font-size: 11px; color: #aaa; margin-top: 2px; }
+
+  select, input[type=number], input[type=text] {
+    width: 100%; padding: 9px 11px; font-size: 14px;
+    border: 1px solid #d4d4d4; border-radius: 6px;
+    background: #fff; color: #1a1a1a; transition: border-color .15s;
+  }
+  select:focus, input[type=number]:focus, input[type=text]:focus { outline: none; border-color: #C8102E; box-shadow: 0 0 0 2px rgba(200,16,46,0.12); }
+  .divider { border: none; border-top: 1px solid #eee; margin: 16px 0; }
+
+  /* ── RATE TAG ── */
+  .rate-tag { display: inline-flex; align-items: center; gap: 6px; background: #fff0f2; border: 1px solid #ffd0d8; border-radius: 6px; padding: 8px 12px; font-size: 13px; font-weight: 600; color: #C8102E; margin-top: 2px; }
+
+  /* ── METRICS ── */
+  .metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; margin-bottom: 12px; }
+  @media(max-width:580px) { .metric-grid { grid-template-columns: 1fr 1fr; } }
+  .metric { background: #fafafa; border: 1px solid #e8e8e8; border-radius: 8px; padding: 14px 16px; }
+  .metric-label { font-size: 12px; color: #888; margin-bottom: 5px; }
+  .metric-val { font-size: 20px; font-weight: 700; color: #1a1a1a; }
+  .metric-val.accent { color: #C8102E; }
+
+  /* ── BREAKDOWN ── */
+  .breakdown { border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; margin-top: 4px; }
+  .brow { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; border-bottom: 1px solid #eee; font-size: 13px; }
+  .brow:last-child { border-bottom: none; }
+  .brow.total { background: #fff5f6; font-weight: 600; }
+  .brow .lbl { color: #555; }
+  .brow .val { font-weight: 500; color: #1a1a1a; }
+  .brow.total .val { color: #C8102E; }
+  .brow .neg { color: #3D3D3D; font-weight: 500; }
+  .pct-note { color: #bbb; font-weight: 400; font-size: 12px; margin-left: 5px; }
+
+  /* ── BUTTON ── */
+  .btn-report { display: inline-flex; align-items: center; gap: 8px; margin-top: 16px; padding: 11px 22px; background: #C8102E; color: #fff; border: none; border-radius: 7px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background .15s; }
+  .btn-report:hover { background: #a50d26; }
+  .btn-report svg { width: 16px; height: 16px; fill: #fff; }
+  .report-row { display: flex; justify-content: flex-end; margin-top: 4px; }
+
+  /* ── FOOTER ── */
+  footer { background: #3D3D3D; color: rgba(255,255,255,0.45); text-align: center; font-size: 12px; padding: 24px 20px; margin-top: 48px; }
+  footer strong { color: rgba(255,255,255,0.85); }
+  footer a { color: rgba(255,255,255,0.45); text-decoration: none; }
+  footer a:hover { color: #C8102E; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     NAV
+══════════════════════════════════════════ -->
+<nav>
+  <a class="logo-wrap" href="https://www.idbasesoftware.com" target="_blank">
+    <img class="logo-img" id="nav-logo" src="" alt="iDbase Software" />
+    <span class="logo-tagline">Resource Placement<br>Rate Calculators</span>
+  </a>
+  <button class="back-btn" id="back-btn" onclick="goHome()" style="display:none">
+    <svg viewBox="0 0 20 20"><path d="M17 9H5.83l4.58-4.59L9 3l-7 7 7 7 1.41-1.41L5.83 11H17V9z"/></svg>
+    Back
+  </button>
+</nav>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 1 — LANDING
+══════════════════════════════════════════ -->
+<div id="screen-landing">
+  <div class="landing-hero">
+    <div class="landing-hero-inner">
+      <h1>Rate Calculators</h1>
+      <p>iDbase Rate Card &amp; Sales Playbook 2026 &nbsp;·&nbsp; Select a calculator to get started</p>
+    </div>
+  </div>
+
+  <div class="selector-wrap">
+    <div class="selector-grid">
+
+      <div class="calc-card" onclick="showScreen('budget')">
+        <div class="calc-card-icon">
+          <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+        </div>
+        <h2>Billing Rate Calculator</h2>
+        <p>Calculate the available resource budget from a known billing rate. Understand how much you can afford to pay a consultant after all overheads and GP targets.</p>
+        <span class="calc-card-cta">
+          Start calculating
+          <svg viewBox="0 0 20 20"><path d="M10 3l-1.41 1.41L14.17 10H3v2h11.17l-5.58 5.59L10 19l8-8-8-8z"/></svg>
+        </span>
+      </div>
+
+      <div class="calc-card" onclick="showScreen('sales')">
+        <div class="calc-card-icon">
+          <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14H7v-2h5v2zm5-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        </div>
+        <h2>Resource Cost Calculator</h2>
+        <p>Work out the minimum billing rate you need to charge a client to cover a consultant's cost, all overheads, and still hit your GP target.</p>
+        <span class="calc-card-cta">
+          Start calculating
+          <svg viewBox="0 0 20 20"><path d="M10 3l-1.41 1.41L14.17 10H3v2h11.17l-5.58 5.59L10 19l8-8-8-8z"/></svg>
+        </span>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 2 — BILLING RATE CALCULATOR
+══════════════════════════════════════════ -->
+<div id="screen-budget" style="display:none">
+  <div class="hero">
+    <div class="hero-inner">
+      <div class="hero-badge">Calculator 1</div>
+      <h1>Billing Rate Calculator</h1>
+      <p>Enter placement details to calculate available resource budget</p>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <!-- Placement Details -->
+    <div class="card">
+      <div class="section-title">Placement Details</div>
+      <div class="row">
+        <div class="field">
+          <label>Client</label>
+          <input type="text" id="b-client" placeholder="e.g. Acme Corporation" />
+        </div>
+        <div class="field">
+          <label>Channel Partner</label>
+          <input type="text" id="b-partner" placeholder="e.g. TechRecruit SA (leave blank if direct)" />
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Resource Requirement</label>
+          <select id="b-role" onchange="onBRoleChange()">
+            <option value="550,385">Junior Developer / Support Engineer</option>
+            <option value="750,525">Intermediate Developer / BI / Data Analyst</option>
+            <option value="950,646" selected>Senior Developer / Senior Data Engineer</option>
+            <option value="1125,788">Solution Architect / Data Architect / Lead Consultant</option>
+            <option value="825,578">Project Manager / Delivery Lead</option>
+            <option value="675,473">QA Analyst / Automation Tester</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Billing Rate (R/hr) — auto-filled, editable</label>
+          <input type="number" id="b-rate" value="950" onchange="calcBudget()" />
+          <span class="field-hint">From rate card · override if needed</span>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Contract Duration (months)</label>
+          <input type="number" id="b-months" value="6" min="1" onchange="calcBudget()" />
+        </div>
+        <div class="field">
+          <label>Hours per Month</label>
+          <input type="number" id="b-hours" value="168" min="1" onchange="calcBudget()" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Overhead Assumptions -->
+    <div class="card">
+      <div class="section-title">Overhead Assumptions</div>
+      <div class="row3">
+        <div class="field">
+          <label>Channel Cost (R/hr)</label>
+          <input type="number" id="b-channel" value="0" step="1" onchange="calcBudget()" />
+          <span class="field-hint">Fixed rand amount per hour</span>
+        </div>
+        <div class="field">
+          <label>Commission %</label>
+          <input type="number" id="b-sales" value="2" step="0.1" onchange="calcBudget()" />
+        </div>
+        <div class="field">
+          <label>Delivery Overhead %</label>
+          <input type="number" id="b-overhead" value="0" step="0.1" onchange="calcBudget()" />
+          <span class="field-hint">% of revenue — default 0%</span>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Operational Overhead %</label>
+          <input type="number" id="b-ops" value="10" step="0.1" onchange="calcBudget()" />
+        </div>
+        <div class="field">
+          <label>GP Target %</label>
+          <input type="number" id="b-gp" value="20" step="0.1" onchange="calcBudget()" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="metric-grid">
+      <div class="metric"><div class="metric-label">Billing Rate</div><div class="metric-val" id="b-out-rate">—</div></div>
+      <div class="metric"><div class="metric-label">Resource Budget / hr</div><div class="metric-val accent" id="b-out-rph">—</div></div>
+      <div class="metric"><div class="metric-label">Resource Budget / month</div><div class="metric-val accent" id="b-out-rpm">—</div></div>
+    </div>
+    <div class="metric-grid">
+      <div class="metric"><div class="metric-label">Total Contract Value</div><div class="metric-val" id="b-out-tcv">—</div></div>
+      <div class="metric"><div class="metric-label">Total Resource Budget</div><div class="metric-val accent" id="b-out-trb">—</div></div>
+      <div class="metric"><div class="metric-label">Total GP</div><div class="metric-val" id="b-out-tgp">—</div></div>
+    </div>
+    <div class="breakdown" id="b-breakdown"></div>
+    <div class="report-row">
+      <button class="btn-report" onclick="downloadReport('budget')">
+        <svg viewBox="0 0 20 20"><path d="M13 8V2H7v6H3l7 7 7-7h-4zm-9 8v2h12v-2H4z"/></svg>
+        Download Report (PDF)
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 3 — RESOURCE COST CALCULATOR
+══════════════════════════════════════════ -->
+<div id="screen-sales" style="display:none">
+  <div class="hero">
+    <div class="hero-inner">
+      <div class="hero-badge">Calculator 2</div>
+      <h1>Resource Cost Calculator</h1>
+      <p>Enter resource and placement details to calculate the required billing rate</p>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <!-- Resource & Placement Details -->
+    <div class="card">
+      <div class="section-title">Resource Details</div>
+      <div class="row">
+        <div class="field">
+          <label>Resource Name</label>
+          <input type="text" id="s-name" placeholder="e.g. John Smith" />
+        </div>
+        <div class="field">
+          <label>Position</label>
+          <select id="s-role" onchange="onSRoleChange()">
+            <option value="385">Junior Developer / Support Engineer</option>
+            <option value="525">Intermediate Developer / BI / Data Analyst</option>
+            <option value="646" selected>Senior Developer / Senior Data Engineer</option>
+            <option value="788">Solution Architect / Data Architect / Lead Consultant</option>
+            <option value="578">Project Manager / Delivery Lead</option>
+            <option value="473">QA Analyst / Automation Tester</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Resource Cost (R/hr) — auto-suggested, editable</label>
+          <input type="number" id="s-cost" value="646" onchange="calcSales()" />
+          <span class="field-hint">From rate card · override if needed</span>
+        </div>
+      </div>
+      <hr class="divider" />
+      <div class="section-title">Placement Details</div>
+      <div class="row">
+        <div class="field">
+          <label>Client</label>
+          <input type="text" id="s-client" placeholder="e.g. Acme Corporation" />
+        </div>
+        <div class="field">
+          <label>Channel Partner</label>
+          <input type="text" id="s-partner" placeholder="e.g. TechRecruit SA (leave blank if direct)" />
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Contract Duration (months)</label>
+          <input type="number" id="s-months" value="6" min="1" onchange="calcSales()" />
+        </div>
+        <div class="field">
+          <label>Hours per Month</label>
+          <input type="number" id="s-hours" value="168" min="1" onchange="calcSales()" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Overhead Assumptions -->
+    <div class="card">
+      <div class="section-title">Overhead Assumptions</div>
+      <div class="row3">
+        <div class="field">
+          <label>Channel Cost (R/hr)</label>
+          <input type="number" id="s-channel" value="0" step="1" onchange="calcSales()" />
+          <span class="field-hint">Fixed rand amount per hour</span>
+        </div>
+        <div class="field">
+          <label>Commission %</label>
+          <input type="number" id="s-sales" value="2" step="0.1" onchange="calcSales()" />
+        </div>
+        <div class="field">
+          <label>Delivery Overhead %</label>
+          <input type="number" id="s-overhead" value="0" step="0.1" onchange="calcSales()" />
+          <span class="field-hint">% of revenue — default 0%</span>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Operational Overhead %</label>
+          <input type="number" id="s-ops" value="10" step="0.1" onchange="calcSales()" />
+        </div>
+        <div class="field">
+          <label>GP Target %</label>
+          <input type="number" id="s-gp" value="20" step="0.1" onchange="calcSales()" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="metric-grid">
+      <div class="metric"><div class="metric-label">Required Billing Rate</div><div class="metric-val accent" id="s-out-rate">—</div></div>
+      <div class="metric"><div class="metric-label">GP per Hour</div><div class="metric-val" id="s-out-gph">—</div></div>
+      <div class="metric"><div class="metric-label">Effective GP Margin</div><div class="metric-val" id="s-out-margin">—</div></div>
+    </div>
+    <div class="metric-grid">
+      <div class="metric"><div class="metric-label">Monthly Billing Amount</div><div class="metric-val accent" id="s-out-monthly">—</div></div>
+      <div class="metric"><div class="metric-label">Total Contract Value</div><div class="metric-val accent" id="s-out-tcv">—</div></div>
+      <div class="metric"><div class="metric-label">Total GP</div><div class="metric-val" id="s-out-tgp">—</div></div>
+    </div>
+    <div class="breakdown" id="s-breakdown"></div>
+    <div class="report-row">
+      <button class="btn-report" onclick="downloadReport('sales')">
+        <svg viewBox="0 0 20 20"><path d="M13 8V2H7v6H3l7 7 7-7h-4zm-9 8v2h12v-2H4z"/></svg>
+        Download Report (PDF)
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ FOOTER ══ -->
+<footer>
+  <strong>iDbase Software</strong> &nbsp;·&nbsp; Resource Placement Rate Calculators &nbsp;·&nbsp;
+  Rates sourced from iDbase Rate Card &amp; Sales Playbook 2026 &nbsp;·&nbsp;
+  <a href="https://www.idbasesoftware.com" target="_blank">www.idbasesoftware.com</a>
+</footer>
+
+<script>
+  /* ── LOGO (base64) ── */
+  var LOGO_SRC = "data:image/png;base64,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";
+  document.getElementById("nav-logo").src = LOGO_SRC;
+
+  /* ── NAVIGATION ── */
+  function showScreen(screen) {
+    document.getElementById("screen-landing").style.display = "none";
+    document.getElementById("screen-budget").style.display  = "none";
+    document.getElementById("screen-sales").style.display   = "none";
+    document.getElementById("back-btn").style.display       = "flex";
+    document.getElementById("screen-" + screen).style.display = "";
+    window.scrollTo(0, 0);
+    if (screen === "budget") calcBudget();
+    if (screen === "sales")  calcSales();
+  }
+
+  function goHome() {
+    document.getElementById("screen-landing").style.display = "";
+    document.getElementById("screen-budget").style.display  = "none";
+    document.getElementById("screen-sales").style.display   = "none";
+    document.getElementById("back-btn").style.display       = "none";
+    window.scrollTo(0, 0);
+  }
+
+  /* ── HELPERS ── */
+  function fmt(n)  { return "R" + Math.round(n).toLocaleString("en-ZA"); }
+  function fmtD(n) { return n.toFixed(1) + "%"; }
+
+  function buildBreakdown(rows, containerId) {
+    var html = rows.map(function(r) {
+      return "<div class=\"brow" + (r.total ? " total" : "") + "\">" +
+        "<span class=\"lbl\">" + r.l + "</span>" +
+        "<span class=\"" + (r.cls === "neg" ? "neg" : "val") + "\">" + r.v +
+        (r.pct ? "<span class=\"pct-note\">(" + r.pct + ")</span>" : "") +
+        "</span></div>";
+    }).join("");
+    document.getElementById(containerId).innerHTML = html;
+  }
+
+  /* ── ROLE CHANGES ── */
+  function onBRoleChange() {
+    var parts = document.getElementById("b-role").value.split(",");
+    document.getElementById("b-rate").value = parts[0];
+    calcBudget();
+  }
+
+  function onSRoleChange() {
+    var cost = document.getElementById("s-role").value;
+    document.getElementById("s-cost").value = cost;
+    calcSales();
+  }
+
+  /* ── CALCULATOR 1: BILLING RATE / RESOURCE BUDGET ── */
+  function calcBudget() {
+    var rate     = parseFloat(document.getElementById("b-rate").value)     || 0;
+    var months   = parseFloat(document.getElementById("b-months").value)   || 0;
+    var hours    = parseFloat(document.getElementById("b-hours").value)    || 0;
+    var chRand   = parseFloat(document.getElementById("b-channel").value)  || 0;
+    var si       = parseFloat(document.getElementById("b-sales").value)    / 100 || 0;
+    var overhead = parseFloat(document.getElementById("b-overhead").value) / 100 || 0;
+    var ops      = parseFloat(document.getElementById("b-ops").value)      / 100 || 0;
+    var gp       = parseFloat(document.getElementById("b-gp").value)       / 100 || 0;
+
+    var pctDeduct = si + overhead + ops + gp;
+    var availHr   = rate * (1 - pctDeduct) - chRand;
+    var availMo   = availHr * hours;
+    var tcv       = rate * hours * months;
+    var trb       = availMo * months;
+    var tgp       = rate * gp * hours * months;
+    var chPct     = rate > 0 ? (chRand / rate * 100) : 0;
+    var availPct  = rate > 0 ? (availHr / rate * 100) : 0;
+
+    document.getElementById("b-out-rate").textContent = fmt(rate) + "/hr";
+    document.getElementById("b-out-rph").textContent  = fmt(availHr) + "/hr";
+    document.getElementById("b-out-rpm").textContent  = fmt(availMo);
+    document.getElementById("b-out-tcv").textContent  = fmt(tcv);
+    document.getElementById("b-out-trb").textContent  = fmt(trb);
+    document.getElementById("b-out-tgp").textContent  = fmt(tgp);
+
+    buildBreakdown([
+      { l: "Billing rate (revenue)",           v: fmt(rate)+"/hr",                      pct: "100.0%",            cls: "" },
+      { l: "Less: Channel Cost",               v: chRand?"−"+fmt(chRand)+"/hr":"—",     pct: chRand?"−"+fmtD(chPct):"—",         cls: "neg" },
+      { l: "Less: Commission",                 v: si?"−"+fmt(rate*si)+"/hr":"—",        pct: si?"−"+fmtD(si*100):"—",            cls: "neg" },
+      { l: "Less: Delivery Overhead",          v: overhead?"−"+fmt(rate*overhead)+"/hr":"—", pct: overhead?"−"+fmtD(overhead*100):"—", cls: "neg" },
+      { l: "Less: Operational overhead",       v: ops?"−"+fmt(rate*ops)+"/hr":"—",      pct: ops?"−"+fmtD(ops*100):"—",          cls: "neg" },
+      { l: "Less: GP ("+fmtD(gp*100)+")",      v: "−"+fmt(rate*gp)+"/hr",               pct: "−"+fmtD(gp*100),                  cls: "neg" },
+      { l: "Available resource budget / hr",   v: fmt(availHr)+"/hr",                  pct: fmtD(availPct)+"%",                cls: "total", total: true }
+    ], "b-breakdown");
+  }
+
+  /* ── CALCULATOR 2: RESOURCE COST / SALES RATE ── */
+  function calcSales() {
+    var cost     = parseFloat(document.getElementById("s-cost").value)     || 0;
+    var months   = parseFloat(document.getElementById("s-months").value)   || 0;
+    var hours    = parseFloat(document.getElementById("s-hours").value)    || 0;
+    var chRand   = parseFloat(document.getElementById("s-channel").value)  || 0;
+    var si       = parseFloat(document.getElementById("s-sales").value)    / 100 || 0;
+    var overhead = parseFloat(document.getElementById("s-overhead").value) / 100 || 0;
+    var ops      = parseFloat(document.getElementById("s-ops").value)      / 100 || 0;
+    var gp       = parseFloat(document.getElementById("s-gp").value)       / 100 || 0;
+
+    var pctDeduct = si + overhead + ops + gp;
+    var availPct  = 1 - pctDeduct;
+    var rate      = availPct > 0 ? (cost + chRand) / availPct : 0;
+    var gpHr      = rate * gp;
+    var monthly   = rate * hours;
+    var tcv       = monthly * months;
+    var tgp       = gpHr * hours * months;
+    var chPct     = rate > 0 ? (chRand / rate * 100) : 0;
+    var costPct   = rate > 0 ? (cost / rate * 100) : 0;
+
+    document.getElementById("s-out-rate").textContent    = fmt(rate) + "/hr";
+    document.getElementById("s-out-gph").textContent     = fmt(gpHr) + "/hr";
+    document.getElementById("s-out-margin").textContent  = fmtD(gp * 100);
+    document.getElementById("s-out-monthly").textContent = fmt(monthly);
+    document.getElementById("s-out-tcv").textContent     = fmt(tcv);
+    document.getElementById("s-out-tgp").textContent     = fmt(tgp);
+
+    buildBreakdown([
+      { l: "Required billing rate",            v: fmt(rate)+"/hr",                      pct: "100.0%",            cls: "" },
+      { l: "Less: Channel Cost",               v: chRand?"−"+fmt(chRand)+"/hr":"—",     pct: chRand?"−"+fmtD(chPct):"—",         cls: "neg" },
+      { l: "Less: Commission",                 v: si?"−"+fmt(rate*si)+"/hr":"—",        pct: si?"−"+fmtD(si*100):"—",            cls: "neg" },
+      { l: "Less: Delivery Overhead",          v: overhead?"−"+fmt(rate*overhead)+"/hr":"—", pct: overhead?"−"+fmtD(overhead*100):"—", cls: "neg" },
+      { l: "Less: Operational overhead",       v: ops?"−"+fmt(rate*ops)+"/hr":"—",      pct: ops?"−"+fmtD(ops*100):"—",          cls: "neg" },
+      { l: "Less: GP ("+fmtD(gp*100)+")",      v: "−"+fmt(rate*gp)+"/hr",               pct: "−"+fmtD(gp*100),                  cls: "neg" },
+      { l: "Available for resource cost / hr", v: fmt(cost)+"/hr",                     pct: fmtD(costPct)+"%",                 cls: "total", total: true }
+    ], "s-breakdown");
+  }
+
+  /* ── PDF REPORT ── */
+  function downloadReport(tab) {
+    var { jsPDF } = window.jspdf;
+    var doc = new jsPDF({ unit: "mm", format: "a4" });
+    var W = 210, margin = 18, y = 0;
+    var red = [200,16,46], dark = [61,61,61], grey = [130,130,130], light = [245,245,245], white = [255,255,255];
+    var isBudget = tab === "budget";
+
+    doc.setFillColor(...red);   doc.rect(0, 0, W, 22, "F");
+    doc.setFillColor(...dark);  doc.rect(0, 22, W, 14, "F");
+    doc.setTextColor(...white); doc.setFont("helvetica","bold"); doc.setFontSize(13);
+    doc.text("iDbase Software", margin, 14);
+    doc.setFont("helvetica","normal"); doc.setFontSize(8.5);
+    doc.text("Resource Placement Rate Calculators  |  iDbase Rate Card & Sales Playbook 2026", margin, 31);
+
+    y = 50;
+    doc.setTextColor(...dark); doc.setFont("helvetica","bold"); doc.setFontSize(16);
+    doc.text(isBudget ? "Billing Rate Calculator Report" : "Resource Cost Calculator Report", margin, y);
+    doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...grey);
+    doc.text("Generated: " + new Date().toLocaleDateString("en-ZA",{day:"2-digit",month:"long",year:"numeric"}), W-margin, y, {align:"right"});
+
+    y += 6; doc.setDrawColor(220,220,220); doc.line(margin, y, W-margin, y);
+
+    // Client / Resource info
+    y += 8;
+    if (isBudget) {
+      var client  = document.getElementById("b-client").value  || "—";
+      var partner = document.getElementById("b-partner").value || "Direct";
+      var role    = document.getElementById("b-role").options[document.getElementById("b-role").selectedIndex].text;
+    } else {
+      var name    = document.getElementById("s-name").value    || "—";
+      var role    = document.getElementById("s-role").options[document.getElementById("s-role").selectedIndex].text;
+      var client  = document.getElementById("s-client").value  || "—";
+      var partner = document.getElementById("s-partner").value || "Direct";
+    }
+
+    function infoRow(lbl, val) {
+      doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(...grey); doc.text(lbl, margin, y);
+      doc.setFont("helvetica","bold"); doc.setTextColor(...dark); doc.text(val, W-margin, y, {align:"right"});
+      y += 5.5;
+    }
+
+    doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(...red);
+    doc.text(isBudget ? "PLACEMENT" : "RESOURCE & PLACEMENT", margin, y); y += 6;
+    if (!isBudget) infoRow("Resource Name", name);
+    infoRow("Role / Position", role);
+    infoRow("Client", client);
+    infoRow("Channel Partner", partner);
+
+    y += 2; doc.setDrawColor(220,220,220); doc.line(margin, y, W-margin, y);
+    y += 8; doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(...red);
+    doc.text("INPUTS", margin, y); y += 6;
+
+    if (isBudget) {
+      infoRow("Billing Rate", "R"+document.getElementById("b-rate").value+"/hr");
+      infoRow("Contract Duration", document.getElementById("b-months").value+" months");
+      infoRow("Hours per Month", document.getElementById("b-hours").value+" hrs");
+      infoRow("Channel Cost", "R"+document.getElementById("b-channel").value+"/hr");
+      infoRow("Commission", document.getElementById("b-sales").value+"%");
+      infoRow("Delivery Overhead", document.getElementById("b-overhead").value+"%");
+      infoRow("Operational Overhead", document.getElementById("b-ops").value+"%");
+      infoRow("GP Target", document.getElementById("b-gp").value+"%");
+    } else {
+      infoRow("Resource Cost", "R"+document.getElementById("s-cost").value+"/hr");
+      infoRow("Contract Duration", document.getElementById("s-months").value+" months");
+      infoRow("Hours per Month", document.getElementById("s-hours").value+" hrs");
+      infoRow("Channel Cost", "R"+document.getElementById("s-channel").value+"/hr");
+      infoRow("Commission", document.getElementById("s-sales").value+"%");
+      infoRow("Delivery Overhead", document.getElementById("s-overhead").value+"%");
+      infoRow("Operational Overhead", document.getElementById("s-ops").value+"%");
+      infoRow("GP Target", document.getElementById("s-gp").value+"%");
+    }
+
+    y += 2; doc.setDrawColor(220,220,220); doc.line(margin, y, W-margin, y);
+    y += 8; doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(...red);
+    doc.text("KEY METRICS", margin, y); y += 6;
+
+    var metrics = isBudget ? [
+      {label:"Billing Rate",          val:document.getElementById("b-out-rate").textContent},
+      {label:"Resource Budget / hr",  val:document.getElementById("b-out-rph").textContent},
+      {label:"Resource Budget / mo",  val:document.getElementById("b-out-rpm").textContent},
+      {label:"Total Contract Value",  val:document.getElementById("b-out-tcv").textContent},
+      {label:"Total Resource Budget", val:document.getElementById("b-out-trb").textContent},
+      {label:"Total GP",              val:document.getElementById("b-out-tgp").textContent}
+    ] : [
+      {label:"Required Billing Rate", val:document.getElementById("s-out-rate").textContent},
+      {label:"GP per Hour",           val:document.getElementById("s-out-gph").textContent},
+      {label:"GP Margin",             val:document.getElementById("s-out-margin").textContent},
+      {label:"Monthly Billing",       val:document.getElementById("s-out-monthly").textContent},
+      {label:"Total Contract Value",  val:document.getElementById("s-out-tcv").textContent},
+      {label:"Total GP",              val:document.getElementById("s-out-tgp").textContent}
+    ];
+
+    var colW = (W-margin*2)/3;
+    metrics.forEach(function(m,i){
+      var cx = margin+(i%3)*colW, cy = y+Math.floor(i/3)*22;
+      doc.setFillColor(...light); doc.roundedRect(cx,cy-5,colW-4,20,2,2,"F");
+      doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(...grey);
+      doc.text(m.label, cx+4, cy+1);
+      doc.setFont("helvetica","bold"); doc.setFontSize(11);
+      doc.setTextColor(...(i===0?dark:red));
+      doc.text(m.val, cx+4, cy+9);
+    });
+    y += 48;
+
+    doc.setDrawColor(220,220,220); doc.line(margin, y, W-margin, y);
+    y += 8; doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(...red);
+    doc.text("COST BREAKDOWN (PER HOUR)", margin, y); y += 5;
+
+    var bRows = document.querySelectorAll("#"+(isBudget?"b":"s")+"-breakdown .brow");
+    bRows.forEach(function(row,i){
+      var isTotal = row.classList.contains("total");
+      var lbl  = row.querySelector(".lbl")?row.querySelector(".lbl").textContent:"";
+      var valEl = row.querySelector(".val")||row.querySelector(".neg");
+      var val   = valEl?valEl.childNodes[0].textContent.trim():"";
+      var pctEl = row.querySelector(".pct-note");
+      var pct   = pctEl?pctEl.textContent:"";
+      if(isTotal){ doc.setFillColor(255,245,246); doc.setTextColor(...red); doc.setFont("helvetica","bold"); }
+      else { doc.setFillColor(i%2===0?250:255,i%2===0?250:255,i%2===0?250:255); doc.setTextColor(...dark); doc.setFont("helvetica","normal"); }
+      doc.rect(margin,y-4,W-margin*2,9,"F"); doc.setFontSize(8.5);
+      doc.text(lbl,margin+3,y+1);
+      doc.setFont("helvetica",isTotal?"bold":"normal");
+      doc.text(val+" "+pct,W-margin-3,y+1,{align:"right"});
+      y+=9;
+    });
+
+    var pageH = 297;
+    doc.setFillColor(...dark); doc.rect(0,pageH-16,W,16,"F");
+    doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(...white);
+    doc.text("iDbase Software  •  www.idbasesoftware.com  •  Confidential", W/2, pageH-7, {align:"center"});
+
+    doc.save(isBudget?"iDbase_Billing_Rate_Report.pdf":"iDbase_Resource_Cost_Report.pdf");
+  }
+</script>
+</body>
+</html>
